@@ -8941,15 +8941,14 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 class Clock {
     setTimeoutWithLogging(timeoutInMs, interval, message) {
         return __awaiter(this, void 0, void 0, function* () {
-            let loggerInterval;
             let timeElapsed = 0;
-            loggerInterval = setInterval(() => {
-                timeElapsed = timeElapsed + interval;
+            let should_continue = true;
+            while (should_continue && timeElapsed < timeoutInMs) {
+                yield this.setTimeout(interval);
+                timeElapsed += interval;
                 const timeRemaining = timeoutInMs - timeElapsed;
-                message(timeElapsed, timeRemaining);
-            }, interval);
-            yield this.setTimeout(timeoutInMs);
-            clearInterval(loggerInterval);
+                should_continue = yield message(timeElapsed, timeRemaining);
+            }
         });
     }
     setTimeout(timeout) {
@@ -12980,10 +12979,17 @@ function run() {
                 const cancelledWorkflows = yield workflow.cancelWorkflows(runIdsToCancel);
                 core.info(`🧹  Cancelled ${cancelledWorkflows.length} superseded workflow runs. Starting the clock ...`);
             }
-            yield clock.setTimeoutWithLogging(secondsToWait * 1000, (secondsToWait * 1000) / 10, (timeElapsed, timeRemaining) => {
+            // at least report status every minute for long intervals, and max every second for short intervals
+            const intervalSec = Math.max(Math.min((secondsToWait) / 10, 60), 1);
+            yield clock.setTimeoutWithLogging(secondsToWait * 1000, intervalSec * 1000, (timeElapsed, timeRemaining) => index_awaiter(this, void 0, void 0, function* () {
+                if (yield workflow.isCurrentWorkflowSuperseded()) {
+                    // stop waiting if workflow has been superseded
+                    return false;
+                }
                 const relativeTimeRemaining = lib_Clock.dayjs().add(timeRemaining, 'milliseconds').fromNow();
                 core.info(`⏲  Executing ${relativeTimeRemaining}, unless another workflow runs ...`);
-            });
+                return true;
+            }));
             if (!process.env.ACT) {
                 // Technically, a more recent workflow would have cancelled this workflow,
                 // meaning this code wouldn't run, but we're never sure what could happen.

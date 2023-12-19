@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 class Clock {
-  async setTimeoutWithLogging(timeoutInMs: number, interval: number, message: (timeElapsed: number, timeRemaining: number) => boolean) {
+  async setTimeoutWithLogging(timeoutInMs: number, interval: number, message: (timeElapsed: number, timeRemaining: number) => Promise<boolean>) {
     let timeElapsed = 0;
     let should_continue = true;
 
@@ -13,7 +13,7 @@ class Clock {
       timeElapsed += interval;
       const timeRemaining = timeoutInMs - timeElapsed;
 
-      should_continue = message(timeElapsed, timeRemaining);
+      should_continue = await message(timeElapsed, timeRemaining);
     }
   }
 

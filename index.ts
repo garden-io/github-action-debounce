@@ -29,7 +29,7 @@ async function run() {
     // at least report status every minute for long intervals, and max every second for short intervals
     const intervalSec = Math.max(Math.min((secondsToWait) / 10, 60), 1)
 
-    await clock.setTimeoutWithLogging(secondsToWait * 1000, intervalSec * 1000, (timeElapsed, timeRemaining) => {
+    await clock.setTimeoutWithLogging(secondsToWait * 1000, intervalSec * 1000, async (timeElapsed, timeRemaining) => {
       if (await workflow.isCurrentWorkflowSuperseded()) {
         // stop waiting if workflow has been superseded
         return false
